@@ -1,0 +1,55 @@
+# Copyright the Hyperledger Fabric contributors. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Draft
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Fabric CA Release'
+        required: true
+        type: string
+      two_digit_release:
+        description: 'Fabric CA Two Digit Release'
+        required: true
+        type: string
+
+jobs:
+  draft-release:
+    name: Draft GitHub Release
+    needs: [ build-binaries, build-and-push-docker-images ]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+      - name: Checkout Fabric CA Code
+        uses: actions/checkout@v3
+      - name: Tag Main
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: v${{ inputs.release }}
+      - name: Generate Changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v3.0.0
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Append Changelog To Release Notes
+        run: |
+          cat >> release_notes/v${{ inputs.release }}.md << "EOF"
+          
+          Changes:
+          --------
+          ${{ steps.changelog.outputs.changelog }}"
+          EOF
+      - name: Release Fabric CA Version
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "hyperledger-fabric-ca-*-amd64-${{ inputs.release }}.tar.gz"
+          bodyFile: release_notes/v${{ inputs.release }}.md
+          draft: true
+          tag: v${{ inputs.release }}
+          token: ${{ secrets.GITHUB_TOKEN }}
