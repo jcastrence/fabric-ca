@@ -1,4 +1,4 @@
-Maintainers
+Maintainer
 ===========
 
 | Name            | GitHub                             | Chat            | email                      |
